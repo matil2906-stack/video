@@ -243,7 +243,7 @@ async function loadUsers(){
   select.innerHTML = '<option value="">-- Choisis un ami --</option>' +
     users.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
   if (users.length === 0){
-    select.innerHTML = '<option value="">Aucun ami n\\'a encore de compte</option>';
+    select.innerHTML = '<option value="">Aucun ami n\'a encore de compte</option>';
   }
 }
 
@@ -332,7 +332,7 @@ async function loadSent(){
   const res = await fetch('/api/sent');
   const list = await res.json();
   const el = document.getElementById('sentList');
-  if (list.length===0){ el.innerHTML = '<div class="empty">Tu n\\'as encore rien envoyé.</div>'; return; }
+  if (list.length===0){ el.innerHTML = '<div class="empty">Tu n\'as encore rien envoyé.</div>'; return; }
   el.innerHTML = list.map(v => `
     <div class="video-item">
       <div>
