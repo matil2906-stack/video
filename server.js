@@ -43,6 +43,21 @@ db.exec(`
 try { db.exec('ALTER TABLE videos ADD COLUMN display_name TEXT'); } catch (e) {}
 try { db.exec('ALTER TABLE videos ADD COLUMN message TEXT'); } catch (e) {}
 
+// --- Comptes créés automatiquement au démarrage ---
+const SEED_ACCOUNTS = [
+  { username: 'mathis', password: 'mathis53' },
+  { username: 'SUN-YT', password: 'lafamille1802612' },
+];
+
+for (const acc of SEED_ACCOUNTS) {
+  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(acc.username);
+  if (!exists) {
+    const hash = bcrypt.hashSync(acc.password, 10);
+    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(acc.username, hash);
+    console.log(`Compte créé automatiquement : ${acc.username}`);
+  }
+}
+
 // --- Middlewares ---
 app.set('trust proxy', 1);
 app.use(express.json());
@@ -51,7 +66,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 app.use(session({
-  secret: 'change-cette-cle-secrete-avant-de-deployer',
+  secret: process.env.SESSION_SECRET || 'change-cette-cle-secrete-avant-de-deployer',
   resave: false,
   saveUninitialized: false,
   cookie: { maxAge: 1000 * 60 * 60 * 24 * 30 } // 30 jours
