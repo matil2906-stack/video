@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VidéoPrivée</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --accent:#5b8cff; --accent2:#7c5bff;
+    --text:#eef0f5; --muted:#8b93a7; --danger:#ff5b6e; --success:#4ade80;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(circle at top, #1b1e29, var(--bg) 60%);
+    color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:24px 16px 60px;
+  }
+  h1{font-size:1.4rem; margin:0 0 4px;}
+  .sub{color:var(--muted); font-size:0.9rem; margin-bottom:28px;}
+  .card{
+    background:var(--card); border:1px solid #262a35; border-radius:var(--radius);
+    padding:26px; width:100%; max-width:420px; box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  input, button{
+    width:100%; padding:12px 14px; border-radius:10px; border:1px solid #2c303c;
+    background:#0f1220; color:var(--text); font-size:0.95rem; margin-bottom:12px;
+  }
+  input:focus{outline:none; border-color:var(--accent);}
+  button{
+    cursor:pointer; border:none; font-weight:600;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    transition:opacity .15s;
+  }
+  button:hover{opacity:.9;}
+  button.secondary{background:#232733; color:var(--text);}
+  .toggle{text-align:center; color:var(--muted); font-size:0.85rem; margin-top:6px;}
+  .toggle a{color:var(--accent); cursor:pointer; text-decoration:none;}
+  .error{color:var(--danger); font-size:0.85rem; margin:-4px 0 12px; min-height:1em;}
+  .hidden{display:none !important;}
+
+  #app{width:100%; max-width:620px;}
+  .topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:22px;
+  }
+  .topbar b{color:var(--accent);}
+  .tabs{display:flex; gap:8px; margin-bottom:18px;}
+  .tab{
+    flex:1; text-align:center; padding:10px; border-radius:10px; cursor:pointer;
+    background:#171a21; border:1px solid #262a35; color:var(--muted); font-size:0.9rem;
+  }
+  .tab.active{background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#fff;}
+  .section{
+    background:var(--card); border:1px solid #262a35; border-radius:var(--radius);
+    padding:22px;
+  }
+  .video-item{
+    display:flex; justify-content:space-between; align-items:center;
+    background:#0f1220; border:1px solid #262a35; border-radius:10px;
+    padding:12px 14px; margin-bottom:10px; gap:10px;
+  }
+  .video-item .meta{font-size:0.82rem; color:var(--muted);}
+  .video-item .name{font-weight:600; word-break:break-all;}
+  .video-item button{width:auto; padding:8px 14px; margin:0; font-size:0.85rem;}
+  .empty{color:var(--muted); text-align:center; padding:20px 0; font-size:0.9rem;}
+  .status{font-size:0.85rem; margin-top:10px; min-height:1em;}
+  .status.success{color:var(--success);}
+  .status.error{color:var(--danger);}
+  video.preview{width:100%; border-radius:10px; margin-top:14px; display:none; background:#000;}
+  .logout{background:transparent; color:var(--muted); width:auto; padding:6px 10px; font-size:0.8rem; border:1px solid #2c303c;}
+</style>
+</head>
+<body>
+
+<h1>🎥 VidéoPrivée</h1>
+<p class="sub">Envoie des vidéos à tes amis, en qualité originale, en toute confidentialité.</p>
+
+<!-- Connexion / Inscription -->
+<div id="auth" class="card">
+  <div id="loginForm">
+    <input type="text" id="loginUser" placeholder="Pseudo" autocomplete="username">
+    <input type="password" id="loginPass" placeholder="Mot de passe" autocomplete="current-password">
+    <div class="error" id="loginError"></div>
+    <button onclick="login()">Se connecter</button>
+    <p class="toggle">Pas encore de compte ? <a onclick="showRegister()">Créer un compte</a></p>
+  </div>
+
+  <div id="registerForm" class="hidden">
+    <input type="text" id="regUser" placeholder="Choisis un pseudo" autocomplete="username">
+    <input type="password" id="regPass" placeholder="Choisis un mot de passe" autocomplete="new-password">
+    <div class="error" id="regError"></div>
+    <button onclick="register()">Créer mon compte</button>
+    <p class="toggle">Déjà un compte ? <a onclick="showLogin()">Se connecter</a></p>
+  </div>
+</div>
+
+<!-- App principale -->
+<div id="app" class="hidden">
+  <div class="topbar">
+    <div>Connecté en tant que <b id="meName"></b></div>
+    <button class="logout" onclick="logout()">Déconnexion</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tabSend" onclick="switchTab('send')">Envoyer</div>
+    <div class="tab" id="tabInbox" onclick="switchTab('inbox')">Reçues</div>
+    <div class="tab" id="tabSent" onclick="switchTab('sent')">Envoyées</div>
+  </div>
+
+  <!-- Envoyer -->
+  <div class="section" id="sendSection">
+    <input type="text" id="toUser" placeholder="Pseudo de ton ami">
+    <input type="file" id="videoFile" accept="video/*">
+    <button onclick="sendVideo()">Envoyer la vidéo</button>
+    <div class="status" id="sendStatus"></div>
+  </div>
+
+  <!-- Reçues -->
+  <div class="section hidden" id="inboxSection">
+    <div id="inboxList"></div>
+  </div>
+
+  <!-- Envoyées -->
+  <div class="section hidden" id="sentSection">
+    <div id="sentList"></div>
+  </div>
+
+  <video class="preview" id="preview" controls></video>
+</div>
+
+<script>
+let currentTab = 'send';
+
+function showRegister(){
+  document.getElementById('loginForm').classList.add('hidden');
+  document.getElementById('registerForm').classList.remove('hidden');
+}
+function showLogin(){
+  document.getElementById('registerForm').classList.add('hidden');
+  document.getElementById('loginForm').classList.remove('hidden');
+}
+
+async function checkSession(){
+  const res = await fetch('/api/me');
+  const data = await res.json();
+  if (data.loggedIn){
+    document.getElementById('auth').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('meName').textContent = data.username;
+    loadInbox(); loadSent();
+  } else {
+    document.getElementById('auth').classList.remove('hidden');
+    document.getElementById('app').classList.add('hidden');
+  }
+}
+
+async function register(){
+  const username = document.getElementById('regUser').value.trim();
+  const password = document.getElementById('regPass').value;
+  const errEl = document.getElementById('regError');
+  errEl.textContent = '';
+  const res = await fetch('/api/register', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username, password})
+  });
+  const data = await res.json();
+  if (!res.ok){ errEl.textContent = data.error; return; }
+  checkSession();
+}
+
+async function login(){
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  const res = await fetch('/api/login', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username, password})
+  });
+  const data = await res.json();
+  if (!res.ok){ errEl.textContent = data.error; return; }
+  checkSession();
+}
+
+async function logout(){
+  await fetch('/api/logout', {method:'POST'});
+  checkSession();
+}
+
+function switchTab(tab){
+  currentTab = tab;
+  ['send','inbox','sent'].forEach(t=>{
+    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t===tab);
+    document.getElementById(t+'Section').classList.toggle('hidden', t!==tab);
+  });
+  document.getElementById('preview').style.display='none';
+}
+
+async function sendVideo(){
+  const to = document.getElementById('toUser').value.trim();
+  const fileInput = document.getElementById('videoFile');
+  const statusEl = document.getElementById('sendStatus');
+  statusEl.className='status';
+  statusEl.textContent='';
+
+  if (!to || !fileInput.files[0]){
+    statusEl.className='status error';
+    statusEl.textContent = 'Renseigne le pseudo de ton ami et choisis une vidéo.';
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('to', to);
+  formData.append('video', fileInput.files[0]);
+
+  statusEl.textContent = 'Envoi en cours...';
+  const res = await fetch('/api/send', { method:'POST', body: formData });
+  const data = await res.json();
+  if (!res.ok){
+    statusEl.className='status error';
+    statusEl.textContent = data.error;
+    return;
+  }
+  statusEl.className='status success';
+  statusEl.textContent = 'Vidéo envoyée !';
+  fileInput.value=''; document.getElementById('toUser').value='';
+  loadSent();
+}
+
+function formatSize(bytes){
+  if (bytes > 1e9) return (bytes/1e9).toFixed(2)+' Go';
+  if (bytes > 1e6) return (bytes/1e6).toFixed(1)+' Mo';
+  return Math.round(bytes/1e3)+' Ko';
+}
+
+async function loadInbox(){
+  const res = await fetch('/api/inbox');
+  const list = await res.json();
+  const el = document.getElementById('inboxList');
+  if (list.length===0){ el.innerHTML = '<div class="empty">Aucune vidéo reçue pour le moment.</div>'; return; }
+  el.innerHTML = list.map(v => `
+    <div class="video-item">
+      <div>
+        <div class="name">${escapeHtml(v.original_name)}</div>
+        <div class="meta">De ${escapeHtml(v.from_user)} · ${formatSize(v.size)}</div>
+      </div>
+      <button onclick="playVideo(${v.id})">Regarder</button>
+    </div>
+  `).join('');
+}
+
+async function loadSent(){
+  const res = await fetch('/api/sent');
+  const list = await res.json();
+  const el = document.getElementById('sentList');
+  if (list.length===0){ el.innerHTML = '<div class="empty">Tu n\\'as encore rien envoyé.</div>'; return; }
+  el.innerHTML = list.map(v => `
+    <div class="video-item">
+      <div>
+        <div class="name">${escapeHtml(v.original_name)}</div>
+        <div class="meta">À ${escapeHtml(v.to_user)} · ${formatSize(v.size)}</div>
+      </div>
+      <button onclick="playVideo(${v.id})">Regarder</button>
+    </div>
+  `).join('');
+}
+
+function playVideo(id){
+  const preview = document.getElementById('preview');
+  preview.src = '/api/video/'+id;
+  preview.style.display='block';
+  preview.scrollIntoView({behavior:'smooth'});
+  preview.play();
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+checkSession();
+</script>
+</body>
+</html>
