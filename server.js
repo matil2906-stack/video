@@ -204,6 +204,19 @@ app.get('/api/video/:id', requireAuth, (req, res) => {
   res.sendFile(filePath);
 });
 
+// Supprimer une vidéo (seulement si on est l'expéditeur ou le destinataire)
+app.delete('/api/video/:id', requireAuth, (req, res) => {
+  const video = db.prepare('SELECT * FROM videos WHERE id = ?').get(req.params.id);
+  if (!video) return res.status(404).json({ error: 'Introuvable' });
+  if (video.sender_id !== req.session.userId && video.receiver_id !== req.session.userId) {
+    return res.status(403).json({ error: 'Accès refusé' });
+  }
+  const filePath = path.join(UPLOAD_DIR, video.filename);
+  try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch (e) {}
+  db.prepare('DELETE FROM videos WHERE id = ?').run(video.id);
+  res.json({ ok: true });
+});
+
 app.listen(PORT, () => {
   console.log(`Serveur lancé sur http://localhost:${PORT}`);
 });
