@@ -65,6 +65,9 @@
   .video-item .meta{font-size:0.82rem; color:var(--muted);}
   .video-item .name{font-weight:600; word-break:break-all;}
   .video-item button{width:auto; padding:8px 14px; margin:0; font-size:0.85rem;}
+  .item-actions{display:flex; flex-direction:column; gap:6px; flex-shrink:0;}
+  .item-actions button.danger{background:transparent; border:1px solid #3a2530; color:var(--danger);}
+  .item-actions button.danger:hover{background:rgba(255,91,110,0.1);}
   .empty{color:var(--muted); text-align:center; padding:20px 0; font-size:0.9rem;}
   .status{font-size:0.85rem; margin-top:10px; min-height:1em;}
   .status.success{color:var(--success);}
@@ -368,7 +371,10 @@ async function loadInbox(){
         <div class="meta">De ${escapeHtml(v.from_user)} · ${formatSize(v.size)}</div>
         ${v.message ? `<div class="msg-box">💬 ${escapeHtml(v.message)}</div>` : ''}
       </div>
-      <button onclick="playVideo(${v.id})">Regarder</button>
+      <div class="item-actions">
+        <button onclick="playVideo(${v.id})">Regarder</button>
+        <button class="danger" onclick="deleteVideo(${v.id})">Supprimer</button>
+      </div>
     </div>
   `).join('');
 }
@@ -385,7 +391,10 @@ async function loadSent(){
         <div class="meta">À ${escapeHtml(v.to_user)} · ${formatSize(v.size)}</div>
         ${v.message ? `<div class="msg-box">💬 ${escapeHtml(v.message)}</div>` : ''}
       </div>
-      <button onclick="playVideo(${v.id})">Regarder</button>
+      <div class="item-actions">
+        <button onclick="playVideo(${v.id})">Regarder</button>
+        <button class="danger" onclick="deleteVideo(${v.id})">Supprimer</button>
+      </div>
     </div>
   `).join('');
 }
@@ -396,6 +405,19 @@ function playVideo(id){
   preview.style.display='block';
   preview.scrollIntoView({behavior:'smooth'});
   preview.play();
+}
+
+async function deleteVideo(id){
+  if (!confirm('Supprimer cette vidéo ? Cette action est définitive.')) return;
+  try {
+    const res = await fetch('/api/video/'+id, { method:'DELETE' });
+    const data = await res.json();
+    if (!res.ok){ alert(data.error || 'Impossible de supprimer cette vidéo.'); return; }
+    loadInbox();
+    loadSent();
+  } catch (e) {
+    alert('Impossible de contacter le serveur.');
+  }
 }
 
 function escapeHtml(str){
