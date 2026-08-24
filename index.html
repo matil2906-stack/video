@@ -111,10 +111,6 @@
 <div id="auth" class="card">
   <div id="loginForm">
     <input type="text" id="loginUser" placeholder="Pseudo" autocomplete="username">
-    <div class="pw-wrap">
-      <input type="password" id="loginPass" placeholder="Mot de passe" autocomplete="current-password">
-      <button type="button" class="pw-toggle" onclick="togglePassword('loginPass', this)">👁</button>
-    </div>
     <div class="error" id="loginError"></div>
     <button onclick="login()">Se connecter</button>
     <p class="toggle">Pas encore de compte ? <a onclick="showRegister()">Créer un compte</a></p>
@@ -122,10 +118,6 @@
 
   <div id="registerForm" class="hidden">
     <input type="text" id="regUser" placeholder="Choisis un pseudo" autocomplete="username">
-    <div class="pw-wrap">
-      <input type="password" id="regPass" placeholder="Choisis un mot de passe" autocomplete="new-password">
-      <button type="button" class="pw-toggle" onclick="togglePassword('regPass', this)">👁</button>
-    </div>
     <div class="error" id="regError"></div>
     <button onclick="register()">Créer mon compte</button>
     <p class="toggle">Déjà un compte ? <a onclick="showLogin()">Se connecter</a></p>
@@ -159,7 +151,7 @@
       <textarea id="videoMessage" placeholder="Ex : regarde à partir de 1min30..." rows="3"></textarea>
 
       <label class="field-label">4. Choisis à qui l'envoyer</label>
-      <select id="toUser">
+      <select id="toUser" onfocus="loadUsers()">
         <option value="">-- Choisis un ami --</option>
       </select>
 
@@ -187,17 +179,6 @@
 <script>
 let currentTab = 'send';
 
-function togglePassword(inputId, btn){
-  const input = document.getElementById(inputId);
-  if (input.type === 'password'){
-    input.type = 'text';
-    btn.textContent = '🙈';
-  } else {
-    input.type = 'password';
-    btn.textContent = '👁';
-  }
-}
-
 function showRegister(){
   document.getElementById('loginForm').classList.add('hidden');
   document.getElementById('registerForm').classList.remove('hidden');
@@ -223,13 +204,12 @@ async function checkSession(){
 
 async function register(){
   const username = document.getElementById('regUser').value.trim();
-  const password = document.getElementById('regPass').value;
   const errEl = document.getElementById('regError');
   errEl.textContent = '';
   try {
     const res = await fetch('/api/register', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username, password})
+      body: JSON.stringify({username})
     });
     const data = await res.json();
     if (!res.ok){ errEl.textContent = data.error || 'Une erreur est survenue.'; return; }
@@ -241,13 +221,12 @@ async function register(){
 
 async function login(){
   const username = document.getElementById('loginUser').value.trim();
-  const password = document.getElementById('loginPass').value;
   const errEl = document.getElementById('loginError');
   errEl.textContent = '';
   try {
     const res = await fetch('/api/login', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username, password})
+      body: JSON.stringify({username})
     });
     const data = await res.json();
     if (!res.ok){ errEl.textContent = data.error || 'Une erreur est survenue.'; return; }
@@ -269,6 +248,7 @@ function switchTab(tab){
     document.getElementById(t+'Section').classList.toggle('hidden', t!==tab);
   });
   document.getElementById('preview').style.display='none';
+  if (tab === 'send') loadUsers();
 }
 
 async function loadUsers(){
