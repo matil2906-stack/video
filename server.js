@@ -1,6 +1,5 @@
 const express = require('express');
 const session = require('express-session');
-const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -21,7 +20,6 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
   CREATE TABLE IF NOT EXISTS videos (
@@ -44,17 +42,13 @@ try { db.exec('ALTER TABLE videos ADD COLUMN display_name TEXT'); } catch (e) {}
 try { db.exec('ALTER TABLE videos ADD COLUMN message TEXT'); } catch (e) {}
 
 // --- Comptes créés automatiquement au démarrage ---
-const SEED_ACCOUNTS = [
-  { username: 'mathis', password: 'mathis53' },
-  { username: 'SUN-YT', password: 'lafamille1802612' },
-];
+const SEED_ACCOUNTS = ['mathis', 'SUN_YT'];
 
-for (const acc of SEED_ACCOUNTS) {
-  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(acc.username);
+for (const username of SEED_ACCOUNTS) {
+  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
   if (!exists) {
-    const hash = bcrypt.hashSync(acc.password, 10);
-    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(acc.username, hash);
-    console.log(`Compte créé automatiquement : ${acc.username}`);
+    db.prepare('INSERT INTO users (username) VALUES (?)').run(username);
+    console.log(`Compte créé automatiquement : ${username}`);
   }
 }
 
@@ -99,18 +93,18 @@ const upload = multer({
 // Inscription
 app.post('/api/register', (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password || password.length < 4) {
-      return res.status(400).json({ error: 'Pseudo et mot de passe (4 caractères min) requis' });
+    const { username } = req.body;
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: 'Choisis un pseudo' });
     }
-    const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+    const cleanUsername = username.trim();
+    const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(cleanUsername);
     if (exists) return res.status(400).json({ error: 'Ce pseudo est déjà pris' });
 
-    const hash = bcrypt.hashSync(password, 10);
-    const info = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, hash);
+    const info = db.prepare('INSERT INTO users (username) VALUES (?)').run(cleanUsername);
     req.session.userId = info.lastInsertRowid;
-    req.session.username = username;
-    res.json({ ok: true, username });
+    req.session.username = cleanUsername;
+    res.json({ ok: true, username: cleanUsername });
   } catch (err) {
     console.error('Erreur /api/register :', err);
     res.status(500).json({ error: 'Erreur serveur pendant la création du compte' });
@@ -120,10 +114,10 @@ app.post('/api/register', (req, res) => {
 // Connexion
 app.post('/api/login', (req, res) => {
   try {
-    const { username, password } = req.body;
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-      return res.status(400).json({ error: 'Pseudo ou mot de passe incorrect' });
+    const { username } = req.body;
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get((username || '').trim());
+    if (!user) {
+      return res.status(400).json({ error: "Ce pseudo n'existe pas" });
     }
     req.session.userId = user.id;
     req.session.username = user.username;
