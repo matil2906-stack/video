@@ -373,6 +373,7 @@ async function loadInbox(){
       </div>
       <div class="item-actions">
         <button onclick="playVideo(${v.id})">Regarder</button>
+        <button onclick="downloadVideo(${v.id}, '${escapeHtml(v.display_name || v.original_name).replace(/'/g, "\\'")}')">⬇️ Télécharger</button>
         <button class="danger" onclick="deleteVideo(${v.id})">Supprimer</button>
       </div>
     </div>
@@ -393,10 +394,20 @@ async function loadSent(){
       </div>
       <div class="item-actions">
         <button onclick="playVideo(${v.id})">Regarder</button>
+        <button onclick="downloadVideo(${v.id}, '${escapeHtml(v.display_name || v.original_name).replace(/'/g, "\\'")}')">⬇️ Télécharger</button>
         <button class="danger" onclick="deleteVideo(${v.id})">Supprimer</button>
       </div>
     </div>
   `).join('');
+}
+
+function downloadVideo(id, name){
+  const a = document.createElement('a');
+  a.href = '/api/video/' + id + '?download=1';
+  a.download = name || 'video';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 function playVideo(id){
