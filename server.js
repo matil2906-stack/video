@@ -200,7 +200,8 @@ app.get('/api/video/:id', requireAuth, (req, res) => {
     return res.status(403).send('Accès refusé');
   }
   const filePath = path.join(UPLOAD_DIR, video.filename);
-  res.setHeader('Content-Disposition', `inline; filename="${video.original_name}"`);
+  const disposition = req.query.download === '1' ? 'attachment' : 'inline';
+  res.setHeader('Content-Disposition', `${disposition}; filename="${video.original_name}"`);
   res.sendFile(filePath);
 });
 
